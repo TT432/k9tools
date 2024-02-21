@@ -6,5 +6,5 @@
 
 - 已测试 Record 类；
 - 支持注解 Nullable；
-- 支持 List 类及 Map 类；
+- 支持 Optional, List, Map 类；
 - 支持 enum。

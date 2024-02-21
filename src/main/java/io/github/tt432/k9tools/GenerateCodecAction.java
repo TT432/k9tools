@@ -160,22 +160,35 @@ public class GenerateCodecAction extends AnAction {
             return "com.mojang.serialization.Codec." + vanillaCodecFieldName.get(vanillaCodecClasses.indexOf(typeName));
         } else if (vanillaKeywordCodec.contains(typeName)) {
             return "com.mojang.serialization.Codec." + vanillaCodecFieldName.get(vanillaKeywordCodec.indexOf(typeName));
-        } else if (typeName.equals("java.util.List")) {
-            var fieldGeneric = getFieldGeneric(field);
-
-            if (fieldGeneric.length > 0) {
-                return getCodecRef(field, getTypeName(fieldGeneric[0])) + ".listOf()";
-            }
-        } else if (typeName.equals("java.util.Map")) {
-            var fieldGeneric = getFieldGeneric(field);
-
-            if (fieldGeneric.length > 1) {
-                return "com.mojang.serialization.Codec.unboundedMap(%s, %s)"
-                        .formatted(getCodecRef(field, getTypeName(fieldGeneric[0])),
-                                getCodecRef(field, getTypeName(fieldGeneric[1])));
-            }
         } else {
-            return typeName + ".CODEC";
+            switch (typeName) {
+                case "java.util.List" -> {
+                    var fieldGeneric = getFieldGeneric(field);
+
+                    if (fieldGeneric.length > 0) {
+                        return getCodecRef(field, getTypeName(fieldGeneric[0])) + ".listOf()";
+                    }
+                }
+                case "java.util.Map" -> {
+                    var fieldGeneric = getFieldGeneric(field);
+
+                    if (fieldGeneric.length > 1) {
+                        return "com.mojang.serialization.Codec.unboundedMap(%s, %s)"
+                                .formatted(getCodecRef(field, getTypeName(fieldGeneric[0])),
+                                        getCodecRef(field, getTypeName(fieldGeneric[1])));
+                    }
+                }
+                case "java.util.Optional" -> {
+                    var fieldGeneric = getFieldGeneric(field);
+
+                    if (fieldGeneric.length > 0) {
+                        return getCodecRef(field, getTypeName(fieldGeneric[0]));
+                    }
+                }
+                default -> {
+                    return typeName + ".CODEC";
+                }
+            }
         }
 
         return "";
@@ -198,6 +211,12 @@ public class GenerateCodecAction extends AnAction {
         if (nullable) {
             return "optionalFieldOf(\"%s\", %s)".formatted(field.getName(), getDefaultValue(field));
         } else {
+            String typeName = getTypeName(field);
+
+            if (typeName.equals("java.util.Optional")) {
+                return "optionalFieldOf(\"%s\")".formatted(field.getName());
+            }
+
             return "fieldOf(\"%s\")".formatted(field.getName());
         }
     }
