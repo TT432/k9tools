@@ -1,5 +1,6 @@
 package io.github.tt432.k9tools;
 
+import com.intellij.lang.jvm.JvmModifier;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
@@ -91,6 +92,10 @@ public class GenerateCodecAction extends AnAction {
         StringBuilder fieldsStr = new StringBuilder();
 
         for (PsiField field : fields) {
+            if (field.hasModifier(JvmModifier.STATIC)) {
+                continue;
+            }
+
             if (!fieldsStr.toString().isBlank())
                 fieldsStr.append(",\n");
             fieldsStr.append("%s.%s.forGetter(o -> o.%s)".formatted(getCodecRef(field), getFieldOf(field), field.getName()));
