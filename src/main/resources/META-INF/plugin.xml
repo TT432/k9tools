@@ -16,7 +16,7 @@
     <description><![CDATA[
     A tool plugin.
     features:
-    1. generate Codec for Minecraft Mod
+    1. generate Codec and StreamCodec for Minecraft Mod
   ]]></description>
 
     <!-- Product and plugin compatibility requirements.
@@ -31,7 +31,11 @@
     </extensions>
     <actions>
         <action id="Generate Codec" class="io.github.tt432.k9tools.GenerateCodecAction" text="Generate Codec">
+            <add-to-group group-id="GenerateGroup" anchor="last"/>
+        </action>
 
+        <action id="Generate StreamCodec" class="io.github.tt432.k9tools.GenerateStreamCodecAction"
+                text="Generate StreamCodec">
             <add-to-group group-id="GenerateGroup" anchor="last"/>
         </action>
     </actions>
