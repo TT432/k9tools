@@ -31,7 +31,8 @@ public class GenerateStreamCodecAction extends AnAction {
             "org.joml.Vector3f",
             "org.joml.Quaternionf",
             "com.mojang.authlib.properties.PropertyMap",
-            "com.mojang.authlib.GameProfile"
+            "com.mojang.authlib.GameProfile",
+            "byte[]"
     );
 
     private static final List<String> vanillaCodecFieldName = List.of(
@@ -48,7 +49,8 @@ public class GenerateStreamCodecAction extends AnAction {
             "VECTOR3F",
             "QUATERNIONF",
             "GAME_PROFILE_PROPERTIES",
-            "GAME_PROFILE"
+            "GAME_PROFILE",
+            "BYTE_ARRAY"
     );
 
     private static final List<String> vanillaKeywordCodec = List.of(
@@ -67,13 +69,46 @@ public class GenerateStreamCodecAction extends AnAction {
     private String getCodecRef(PsiField field) {
         String typeName = getTypeName(field);
 
+        return getCodecRef(field, typeName);
+    }
+
+    private String getCodecRef(PsiField field, String typeName) {
         if (vanillaCodecClasses.contains(typeName)) {
-            return ByteBufCodecsName +"."+ vanillaCodecFieldName.get(vanillaCodecClasses.indexOf(typeName));
+            return ByteBufCodecsName + "." + vanillaCodecFieldName.get(vanillaCodecClasses.indexOf(typeName));
         } else if (vanillaKeywordCodec.contains(typeName)) {
-            return ByteBufCodecsName +"."+ vanillaCodecFieldName.get(vanillaKeywordCodec.indexOf(typeName));
+            return ByteBufCodecsName + "." + vanillaCodecFieldName.get(vanillaKeywordCodec.indexOf(typeName));
         } else {
-            return typeName + "." + streamCodecFieldName;
+            switch (typeName) {
+                case "java.util.List" -> {
+                    var fieldGeneric = getFieldGeneric(field);
+
+                    if (fieldGeneric.length > 0) {
+                        return ByteBufCodecsName + ".collection(java.util.ArrayList::new, " + getCodecRef(field, getTypeName(fieldGeneric[0])) + ")";
+                    }
+                }
+                case "java.util.Map" -> {
+                    var fieldGeneric = getFieldGeneric(field);
+
+                    if (fieldGeneric.length > 1) {
+                        return ByteBufCodecsName + ".map(java.util.HashMap::new, " +
+                                getCodecRef(field, getTypeName(fieldGeneric[0])) + ", " +
+                                getCodecRef(field, getTypeName(fieldGeneric[1])) + ")";
+                    }
+                }
+                case "java.util.Optional" -> {
+                    var fieldGeneric = getFieldGeneric(field);
+
+                    if (fieldGeneric.length > 0) {
+                        return ByteBufCodecsName + ".optional(" + getCodecRef(field, getTypeName(fieldGeneric[0])) + ")";
+                    }
+                }
+                default -> {
+                    return typeName + streamCodecFieldName;
+                }
+            }
         }
+
+        return "";
     }
 
     private String getTypeName(PsiField field) {
@@ -138,5 +173,16 @@ public class GenerateStreamCodecAction extends AnAction {
 
             psiClass.add(JavaCodeStyleManager.getInstance(project).shortenClassReferences(codecField));
         });
+    }
+
+
+    private PsiTypeElement[] getFieldGeneric(PsiField field) {
+        var type = field.getTypeElement();
+        if (type == null) return new PsiTypeElement[0];
+        PsiJavaCodeReferenceElement ref = type.getInnermostComponentReferenceElement();
+        if (ref == null) return new PsiTypeElement[0];
+        PsiReferenceParameterList parameterList = ref.getParameterList();
+        if (parameterList == null) return new PsiTypeElement[0];
+        return parameterList.getTypeParameterElements();
     }
 }
