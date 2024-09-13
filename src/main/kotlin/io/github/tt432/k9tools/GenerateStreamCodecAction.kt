@@ -91,7 +91,7 @@ class GenerateStreamCodecAction : AnAction() {
                             field,
                             getTypeName(fieldGeneric[0])
                         )
-                    }, ${getCodecRef(field, getTypeName(fieldGeneric[1]))}"
+                    }, ${getCodecRef(field, getTypeName(fieldGeneric[1]))})"
                 }
             }
 
