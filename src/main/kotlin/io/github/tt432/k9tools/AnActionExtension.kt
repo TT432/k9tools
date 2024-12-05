@@ -39,8 +39,8 @@ fun getPsiClass(event: AnActionEvent): Result {
     return Result(editor, psiClass)
 }
 
-fun getFieldGeneric(field: PsiField): Array<PsiTypeElement?> {
-    val type = field.typeElement ?: return arrayOfNulls(0)
+fun getFieldGeneric(type: PsiTypeElement?): Array<PsiTypeElement?> {
+    type ?: return arrayOfNulls(0)
     val ref = type.innermostComponentReferenceElement ?: return arrayOfNulls(0)
     val parameterList = ref.parameterList ?: return arrayOfNulls(0)
     return parameterList.typeParameterElements
@@ -52,7 +52,6 @@ fun getTypeName(field: PsiField): String {
 }
 
 fun getTypeName(element: PsiTypeElement?): String {
-    val ref = element!!.innermostComponentReferenceElement ?: // is keyword ( boolean, int ... )
-    return element.text
+    val ref = element!!.innermostComponentReferenceElement ?: return element.text
     return ref.qualifiedName
 }

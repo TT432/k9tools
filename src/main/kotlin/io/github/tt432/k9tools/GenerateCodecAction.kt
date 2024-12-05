@@ -8,6 +8,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiElementFactory
 import com.intellij.psi.PsiField
+import com.intellij.psi.PsiTypeElement
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 
 /**
@@ -71,7 +72,7 @@ class GenerateCodecAction : AnAction() {
                 val factory = PsiElementFactory.getInstance(project)
 
                 val codecField = factory.createFieldFromText(
-                    "public static final $Codec<%${psiClass.name}> CODEC = $StringRepresentable.fromEnum(${psiClass.name}::values);",
+                    "public static final $Codec<${psiClass.name}> CODEC = $StringRepresentable.fromEnum(${psiClass.name}::values);",
                     psiClass
                 )
 
@@ -110,7 +111,7 @@ class GenerateCodecAction : AnAction() {
 
         fields.filter { !it.hasModifier(JvmModifier.STATIC) }.forEach {
             fieldsStr.append(
-                "    ${getCodecRef(it)}.${getFieldOf(it)}.forGetter(${
+                "    ${getCodecRef(it.typeElement)}.${getFieldOf(it)}.forGetter(${
                     getGetterName(
                         className,
                         it,
@@ -131,7 +132,7 @@ class GenerateCodecAction : AnAction() {
         )
     }
 
-    private fun getCodecRef(field: PsiField, typeName: String = getTypeName(field)): String {
+    private fun getCodecRef(field: PsiTypeElement?, typeName: String = getTypeName(field)): String {
         if (vanillaCodecClasses.contains(typeName)) {
             return "$Codec.${vanillaCodecFieldName[vanillaCodecClasses.indexOf(typeName)]}"
         } else if (vanillaKeywordCodec.contains(typeName)) {
@@ -141,7 +142,7 @@ class GenerateCodecAction : AnAction() {
                 val fieldGeneric = getFieldGeneric(field)
 
                 if (fieldGeneric.isNotEmpty()) {
-                    return "${getCodecRef(field, getTypeName(fieldGeneric[0]))}.listOf()"
+                    return "${getCodecRef(fieldGeneric[0], getTypeName(fieldGeneric[0]))}.listOf()"
                 }
             }
 
@@ -151,10 +152,10 @@ class GenerateCodecAction : AnAction() {
                 if (fieldGeneric.isNotEmpty()) {
                     return "$Codec.unboundedMap(${
                         getCodecRef(
-                            field,
+                            fieldGeneric[0],
                             getTypeName(fieldGeneric[0])
                         )
-                    }, ${getCodecRef(field, getTypeName(fieldGeneric[1]))}"
+                    }, ${getCodecRef(fieldGeneric[1], getTypeName(fieldGeneric[1]))})"
                 }
             }
 
@@ -162,7 +163,7 @@ class GenerateCodecAction : AnAction() {
                 val fieldGeneric = getFieldGeneric(field)
 
                 if (fieldGeneric.isNotEmpty()) {
-                    return getCodecRef(field, getTypeName(fieldGeneric[0]))
+                    return getCodecRef(fieldGeneric[0], getTypeName(fieldGeneric[0]))
                 }
             }
 

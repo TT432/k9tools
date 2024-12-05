@@ -5,7 +5,7 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.psi.PsiElementFactory
-import com.intellij.psi.PsiField
+import com.intellij.psi.PsiTypeElement
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 
 /**
@@ -63,7 +63,7 @@ class GenerateStreamCodecAction : AnAction() {
         const val StreamCodec = "net.minecraft.network.codec.StreamCodec"
     }
 
-    private fun getCodecRef(field: PsiField, typeName: String = getTypeName(field)): String {
+    private fun getCodecRef(field: PsiTypeElement?, typeName: String = getTypeName(field)): String {
         if (vanillaCodecClasses.contains(typeName)) {
             return "$ByteBufCodecsName.${vanillaCodecFieldName[vanillaCodecClasses.indexOf(typeName)]}"
         } else if (vanillaKeywordCodec.contains(typeName)) {
@@ -75,7 +75,7 @@ class GenerateStreamCodecAction : AnAction() {
                 if (fieldGeneric.isNotEmpty()) {
                     return "$ByteBufCodecsName.collection(java.util.ArrayList::new, ${
                         getCodecRef(
-                            field,
+                            fieldGeneric[0],
                             getTypeName(fieldGeneric[0])
                         )
                     })"
@@ -88,10 +88,10 @@ class GenerateStreamCodecAction : AnAction() {
                 if (fieldGeneric.isNotEmpty()) {
                     return "$ByteBufCodecsName.map(java.util.HashMap::new, ${
                         getCodecRef(
-                            field,
+                            fieldGeneric[0],
                             getTypeName(fieldGeneric[0])
                         )
-                    }, ${getCodecRef(field, getTypeName(fieldGeneric[1]))})"
+                    }, ${getCodecRef(fieldGeneric[1], getTypeName(fieldGeneric[1]))})"
                 }
             }
 
@@ -99,7 +99,7 @@ class GenerateStreamCodecAction : AnAction() {
                 val fieldGeneric = getFieldGeneric(field)
 
                 if (fieldGeneric.isNotEmpty()) {
-                    return "$ByteBufCodecsName.optional(${getCodecRef(field, getTypeName(fieldGeneric[0]))})"
+                    return "$ByteBufCodecsName.optional(${getCodecRef(fieldGeneric[0], getTypeName(fieldGeneric[0]))})"
                 }
             }
 
@@ -128,7 +128,7 @@ class GenerateStreamCodecAction : AnAction() {
 
             fields.filter { !it.hasModifier(JvmModifier.STATIC) }.forEach {
                 fieldsStr.append(
-                    "    ${getCodecRef(it)},\n" +
+                    "    ${getCodecRef(it.typeElement)},\n" +
                             "    ${getGetterName(className, it, getFieldAndGetterMethod(psiClass))},\n"
                 )
             }
