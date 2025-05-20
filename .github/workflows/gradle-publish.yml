@@ -4,7 +4,6 @@ on: [ push, pull_request ]
 
 permissions:
   contents: write  # 需要写入权限来创建 release
-  pull-requests: read
 
 jobs:
   build:
@@ -32,43 +31,31 @@ jobs:
           name: Package
           path: build/libs
   release:
-    needs: build  # 依赖 build job 完成
+    needs: build  # 依赖构建任务完成
     runs-on: ubuntu-latest
     steps:
-      - name: Download build artifact
+      - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: Package
+          name: package
           path: build/libs
 
-      - name: Get current date
-        id: date
-        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
-
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1  # 使用官方推荐的 ncipollo/release-action
         with:
-          tag_name: v${{ env.date }}-preview  # 使用日期作为版本号
-          release_name: Preview Release ${{ env.date }}
-          draft: false
-          prerelease: true  # 标记为预发布版本
+          # 基础配置
+          token: ${{ github.token }}  # 自动使用 GitHub 令牌，无需额外配置
+          # 版本标签（必填，建议使用语义化版本或动态日期）
+          tag: v${{ github.sha == github.head_sha && github.ref_type == 'branch' && format('{0}-{1}', github.ref_name, github.run_number) || github.ref_name }}
+          # 版本名称（可选，默认使用标签）
+          name: Release ${{ github.ref_name }}
+          # 版本描述（支持 Markdown，或通过 bodyFile 指定文件路径）
           body: |
-            这是一个自动生成的预览版本。
-            包含以下构建产物：
-            ${{ steps.list_files.outputs.files }}
-
-      - name: List files for release
-        id: list_files
-        run: |
-          FILES=$(ls build/libs | tr '\n' ' ')
-          echo "files=$FILES" >> $GITHUB_ENV
-          echo "::set-output name=files::$FILES"
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+            ### 构建信息
+            - 构建时间：${{ github.run_timestamp }}
+            - 提交哈希：[${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+          # 上传产物（支持单个文件或通配符，多个路径用逗号分隔）
+          artifacts: build/libs/**/*.jar
           asset_path: build/libs/${{ env.artifact_name }}
           asset_name: ${{ env.artifact_name }}
           asset_content_type: application/java-archive
