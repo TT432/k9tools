@@ -49,12 +49,12 @@ jobs:
         with:
           # 基础配置
           token: ${{ github.token }}
-          tag: ${{steps.get_version.outputs.VERSION}}
+          tag: ${{ steps.get_version.outputs.VERSION }}
           body: |
             ### 构建信息
             - 构建时间：${{ github.run_timestamp }}
             - 提交哈希：[${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
-          artifacts: build/libs/k9tools-${{steps.get_version.outputs.VERSION}}.jar
+          artifacts: build/libs/k9tools-${{ steps.get_version.outputs.VERSION }}.jar
           asset_path: build/libs/${{ env.artifact_name }}
           asset_name: ${{ env.artifact_name }}
           asset_content_type: application/java-archive
