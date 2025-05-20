@@ -44,6 +44,14 @@ tasks {
     publishPlugin {
         token.set(System.getenv("PUBLISH_TOKEN"))
     }
+
+    register("printVersion") {
+        notCompatibleWithConfigurationCache("直接访问 project 对象")
+
+        doLast {
+            println(version.toString())
+        }
+    }
 }
 
 idea {

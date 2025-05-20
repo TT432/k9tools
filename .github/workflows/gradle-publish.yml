@@ -40,20 +40,21 @@ jobs:
           name: Package
           path: build/libs
 
+      - name: Get the version number
+        id: get_version
+        run: echo ::set-output name=VERSION::$(./gradlew printVersion -q)
+
       - name: Create GitHub Release
         uses: ncipollo/release-action@v1  # 使用官方推荐的 ncipollo/release-action
         with:
           # 基础配置
-          token: ${{ github.token }}  # 自动使用 GitHub 令牌，无需额外配置
-          # 版本标签（必填，建议使用语义化版本或动态日期）
-          tag: ${{ github.sha }}
-          # 版本描述（支持 Markdown，或通过 bodyFile 指定文件路径）
+          token: ${{ github.token }}
+          tag: ${{steps.get_version.outputs.VERSION}}
           body: |
             ### 构建信息
             - 构建时间：${{ github.run_timestamp }}
             - 提交哈希：[${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
-          # 上传产物（支持单个文件或通配符，多个路径用逗号分隔）
-          artifacts: build/libs/**/*.jar
+          artifacts: build/libs/**/k9tools-${{steps.get_version.outputs.VERSION}}.jar
           asset_path: build/libs/${{ env.artifact_name }}
           asset_name: ${{ env.artifact_name }}
           asset_content_type: application/java-archive
