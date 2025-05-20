@@ -8,6 +8,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -37,7 +39,7 @@ jobs:
           VERSION=$(./gradlew printVersion --quiet)
           # 移除可能的换行符或空格（确保版本号干净）
           VERSION=$(echo "$VERSION" | tr -d '\n')
-          echo "::set-output name=version::$VERSION"
+          echo "{version}={$VERSION}" >> $GITHUB_OUTPUT
         # 需确保任务在 build 之后执行，因为 gradle 任务依赖项目配置
   release:
     needs: build  # 依赖构建任务完成
@@ -54,7 +56,7 @@ jobs:
         with:
           # 基础配置
           token: ${{ github.token }}
-          tag: ${{ steps.get-version.outputs.version }}
+          tag: ${{ needs.build.outputs.version }}
           body: |
             ### 构建信息
             - 构建时间：${{ github.run_timestamp }}
