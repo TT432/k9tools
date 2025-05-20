@@ -1,11 +1,14 @@
+@file:Suppress("UnstableApiUsage")
+
 package io.github.tt432.k9tools
 
 import com.intellij.lang.jvm.JvmModifier
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.psi.PsiElementFactory
-import com.intellij.psi.PsiTypeElement
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.NlsSafe
+import com.intellij.psi.*
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 
 /**
@@ -115,7 +118,7 @@ class GenerateStreamCodecAction : AnAction() {
         val project = event.project ?: return
 
         WriteCommandAction.runWriteCommandAction(project) {
-            val (editor, psiClass) = getPsiClass(event);
+            val (editor, psiClass) = getPsiClass(event)
 
             if (editor == null || psiClass == null) return@runWriteCommandAction
 
@@ -124,25 +127,85 @@ class GenerateStreamCodecAction : AnAction() {
             if (fields.any { it.name == "STREAM_CODEC" }) return@runWriteCommandAction
 
             val className = psiClass.name!!
-            val fieldsStr = StringBuilder()
 
-            fields.filter { !it.hasModifier(JvmModifier.STATIC) }.forEach {
-                fieldsStr.append(
-                    "    ${getCodecRef(it.typeElement)},\n" +
-                            "    ${getGetterName(className, it, getFieldAndGetterMethod(psiClass))},\n"
-                )
-            }
+            if (fields.size <= 6) { serializeWithinSixFields(fields, className, psiClass, project) }
+            else serializeMoreThanSixFields(fields, className, psiClass, project)
+        }
+    }
 
-            psiClass.add(
-                JavaCodeStyleManager.getInstance(project).shortenClassReferences(
-                    PsiElementFactory.getInstance(project).createFieldFromText(
-                        "public static final $StreamCodec<io.netty.buffer.ByteBuf, $className> STREAM_CODEC = $StreamCodec.composite(\n" +
-                                "$fieldsStr    $className::new\n" +
-                                ");",
-                        psiClass
-                    )
-                )
+    private fun serializeWithinSixFields(
+        fields: Array<out PsiField>,
+        className: @NlsSafe String,
+        psiClass: PsiClass,
+        project: Project
+    ) {
+        val fieldsStr = StringBuilder()
+
+        fields.filter { !it.hasModifier(JvmModifier.STATIC) }.forEach {
+            fieldsStr.append(
+                "    ${getCodecRef(it.typeElement)},\n" +
+                "    ${getGetterName(className, it, getFieldAndGetterMethod(psiClass))},\n"
             )
         }
+
+        psiClass.add(
+            JavaCodeStyleManager.getInstance(project).shortenClassReferences(
+                PsiElementFactory.getInstance(project).createFieldFromText(
+                    "public static final $StreamCodec<io.netty.buffer.ByteBuf, $className> STREAM_CODEC = $StreamCodec.composite(\n" +
+                    "$fieldsStr" +
+                    "    $className::new\n" +
+                    ");",
+                    psiClass
+                )
+            )
+        )
+    }
+
+    private fun serializeMoreThanSixFields(
+        fields: Array<out PsiField>,
+        className: @NlsSafe String,
+        psiClass: PsiClass,
+        project: Project
+    ) {
+        val decodeStr = StringBuilder()
+        val decodeConstructStrBuilder = StringBuilder()
+        val encodeStr = StringBuilder()
+
+        fields.filter { !it.hasModifier(JvmModifier.STATIC) }.forEach {
+            decodeStr.append(
+                "        ${getTypeName(it)} ${it.name} = ${getCodecRef(it.typeElement)}.decode(buf);\n"
+            )
+            decodeConstructStrBuilder.append(
+                "${it.name}, "
+            )
+            encodeStr.append(
+                "        ${getCodecRef(it.typeElement)}.encode(buf, ${getDirectGetterName(it, getFieldAndGetterMethod(psiClass))});\n"
+            )
+        }
+
+        val decodeConstructStr = decodeConstructStrBuilder.substring(0, decodeConstructStrBuilder.length - 2)
+
+        psiClass.add(
+            JavaCodeStyleManager.getInstance(project).shortenClassReferences(
+                PsiElementFactory.getInstance(project).createFieldFromText(
+                    "public static final $StreamCodec<io.netty.buffer.ByteBuf, $className> STREAM_CODEC = new $StreamCodec<>() {\n" +
+                    "    @java.lang.Override\n" +
+                    "    public $className decode(io.netty.buffer.ByteBuf buf) {\n" +
+                    "$decodeStr" +
+                    "        return new $className($decodeConstructStr);\n" +
+                    "    }\n\n" +
+                    "    @java.lang.Override\n" +
+                    "    public void encode(io.netty.buffer.ByteBuf buf, $className value) {\n" +
+                    "$encodeStr" +
+                    "    }\n" +
+                    "};",
+                    psiClass
+                )
+            )
+        )
+    }
+
+    private fun getDirectGetterName(field: PsiField, map: Map<PsiField, PsiMethod?>): String {
+        return "value." + if (map.containsKey(field) && map[field] != null) "${map[field]?.name}()" else field.name
     }
 }
