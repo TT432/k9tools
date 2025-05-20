@@ -46,9 +46,7 @@ jobs:
           # 基础配置
           token: ${{ github.token }}  # 自动使用 GitHub 令牌，无需额外配置
           # 版本标签（必填，建议使用语义化版本或动态日期）
-          tag: v${{ github.sha == github.head_sha && github.ref_type == 'branch' && format('{0}-{1}', github.ref_name, github.run_number) || github.ref_name }}
-          # 版本名称（可选，默认使用标签）
-          name: Release ${{ github.ref_name }}
+          tag: ${{ github.sha }}
           # 版本描述（支持 Markdown，或通过 bodyFile 指定文件路径）
           body: |
             ### 构建信息
