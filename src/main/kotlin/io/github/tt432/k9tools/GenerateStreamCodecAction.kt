@@ -122,11 +122,13 @@ class GenerateStreamCodecAction : AnAction() {
 
             if (editor == null || psiClass == null) return@runWriteCommandAction
 
-            val fields = psiClass.allFields
+            val className = psiClass.name!!
+
+            var fields = psiClass.allFields
 
             if (fields.any { it.name == "STREAM_CODEC" }) return@runWriteCommandAction
 
-            val className = psiClass.name!!
+            fields = fields.filter { !it.hasModifier(JvmModifier.STATIC) }.toTypedArray()
 
             if (fields.size <= 6) { serializeWithinSixFields(fields, className, psiClass, project) }
             else serializeMoreThanSixFields(fields, className, psiClass, project)
@@ -141,7 +143,7 @@ class GenerateStreamCodecAction : AnAction() {
     ) {
         val fieldsStr = StringBuilder()
 
-        fields.filter { !it.hasModifier(JvmModifier.STATIC) }.forEach {
+        fields.forEach {
             fieldsStr.append(
                 "    ${getCodecRef(it.typeElement)},\n" +
                 "    ${getGetterName(className, it, getFieldAndGetterMethod(psiClass))},\n"
@@ -171,7 +173,7 @@ class GenerateStreamCodecAction : AnAction() {
         val decodeConstructStrBuilder = StringBuilder()
         val encodeStr = StringBuilder()
 
-        fields.filter { !it.hasModifier(JvmModifier.STATIC) }.forEach {
+        fields.forEach {
             decodeStr.append(
                 "        ${getTypeName(it)} ${it.name} = ${getCodecRef(it.typeElement)}.decode(buf);\n"
             )

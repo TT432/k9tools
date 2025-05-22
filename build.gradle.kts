@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.github.tt432"
-version = "1.2-SNAPSHOT"
+version = "1.2.1-SNAPSHOT"
 
 repositories {
     mavenCentral()
