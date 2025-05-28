@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "io.github.tt432"
-version = "1.2.1-SNAPSHOT"
+version = "1.2.2-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -32,7 +32,7 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("231")
-        untilBuild.set("250.*")
+        untilBuild.set("260.*")
     }
 
     signPlugin {
