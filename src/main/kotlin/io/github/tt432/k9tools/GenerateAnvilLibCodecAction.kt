@@ -10,19 +10,19 @@ import com.intellij.psi.PsiClass
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElementFactory
 import com.intellij.psi.PsiField
+import com.intellij.psi.PsiTypeElement
 import com.intellij.psi.codeStyle.JavaCodeStyleManager
 
 /**
- * @author TT432
+ * @author QiuShui1012
  */
 @Suppress("ConstPropertyName", "DuplicatedCode")
-class GenerateCodecAction : AnAction() {
+class GenerateAnvilLibCodecAction : AnAction() {
     companion object {
         private const val Codec: String = "com.mojang.serialization.Codec"
         private const val StringRepresentable: String = "net.minecraft.util.StringRepresentable"
-        private const val NonNull: String = "org.jspecify.annotations.NonNull"
         private const val Locale: String = "java.util.Locale"
-        private const val RecordCodecBuilder: String = "com.mojang.serialization.codecs.RecordCodecBuilder"
+        private const val CodecUtil: String = "dev.anvilcraft.lib.v2.codec.CodecUtil"
     }
 
     override fun actionPerformed(event: AnActionEvent) {
@@ -50,7 +50,7 @@ class GenerateCodecAction : AnAction() {
 
                 if (!psiClass.methods.any { it.name == "getSerializedName" }) {
                     val stringRepresentableImpl = factory.createMethodFromText(
-                        "@Override @$NonNull public String getSerializedName() { return this.name().toLowerCase($Locale.ROOT); }",
+                        "@Override public String getSerializedName() { return this.name().toLowerCase($Locale.ROOT); }",
                         psiClass
                     )
 
@@ -99,25 +99,38 @@ class GenerateCodecAction : AnAction() {
 
         fields.filter { !it.hasModifier(JvmModifier.STATIC) }.forEach {
             fieldsStr.append(
-                "    ${getCodecRef(it.typeElement)}.${getFieldOf(it)}.forGetter(${
-                    getGetter(
-                        className,
-                        it,
-                        getFieldAndGetterMethod(psiClass)
-                    )
-                }),\n"
+                """
+                    ${getCodecRef(it.typeElement)}
+                    .${getFieldOf(it)}
+                    .forGetter(${
+                        getGetter(
+                            className,
+                            it,
+                            getFieldAndGetterMethod(psiClass)
+                        )
+                    }),
+                    
+                """.trimIndent()
             )
         }
 
         psiClass.add(
             JavaCodeStyleManager.getInstance(project).shortenClassReferences(
                 PsiElementFactory.getInstance(project).createFieldFromText(
-                    "public static final $Codec<$className> CODEC = $RecordCodecBuilder.create(ins -> ins.group(\n" +
-                            "${fieldsStr.toString().removeSuffix(",\n") + "\n"}).apply(ins, $className::new));",
+                    "public static final $Codec<$className> CODEC = $CodecUtil.create(\n$fieldsStr$className::new\n);",
                     psiClass
                 )
             )
         )
+    }
+
+    private fun getCodecRef(field: PsiTypeElement?, typeName: String = getTypeName(field)): String {
+        for ((types, codec) in anvillibCodecs) {
+            if (types.contains(typeName)) {
+                return "$CodecUtil.$codec"
+            }
+        }
+        return getCodecRef(field, typeName, false)
     }
 
     private fun getFieldOf(field: PsiField): String {
@@ -152,3 +165,9 @@ class GenerateCodecAction : AnAction() {
         }
     }
 }
+
+private val anvillibCodecs = mapOf(
+    Pair(listOf("net.minecraft.world.level.storage.loot.providers.number.NumberProvider"), "NUMBER_PROVIDER"),
+    Pair(listOf("net.minecraft.world.entity.EntityType"), "ENTITY"),
+    Pair(listOf("java.lang.Character", "char"), "CHAR"),
+)

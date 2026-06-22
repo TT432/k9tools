@@ -30,13 +30,30 @@
 
     </extensions>
     <actions>
-        <action id="Generate Codec" class="io.github.tt432.k9tools.GenerateCodecAction" text="Generate Codec">
+        <action id="Generate.Codec"
+                class="io.github.tt432.k9tools.GenerateCodecAction">
             <add-to-group group-id="GenerateGroup" anchor="last"/>
         </action>
 
-        <action id="Generate StreamCodec" class="io.github.tt432.k9tools.GenerateStreamCodecAction"
-                text="Generate StreamCodec">
+        <action id="Generate.StreamCodec"
+                class="io.github.tt432.k9tools.GenerateStreamCodecAction">
+            <add-to-group group-id="GenerateGroup" anchor="last"/>
+        </action>
+
+        <action id="Generate.AnvilLibCodec"
+                class="io.github.tt432.k9tools.GenerateAnvilLibCodecAction">
+            <add-to-group group-id="GenerateGroup" anchor="last"/>
+        </action>
+
+        <action id="Generate.AnvilLibMapCodec"
+                class="io.github.tt432.k9tools.GenerateAnvilLibMapCodecAction">
+            <add-to-group group-id="GenerateGroup" anchor="last"/>
+        </action>
+
+        <action id="Generate.AnvilLibStreamCodec"
+                class="io.github.tt432.k9tools.GenerateAnvilLibStreamCodecAction">
             <add-to-group group-id="GenerateGroup" anchor="last"/>
         </action>
     </actions>
+    <resource-bundle>lang.Lang</resource-bundle>
 </idea-plugin>
